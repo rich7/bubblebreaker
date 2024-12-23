@@ -9,15 +9,17 @@
     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        background-color: #e0e0e0;
+
         .bubble {
-            box-shadow: inset -3px -3px 8px rgba(0,0,0,0.3),
-                        inset 3px 3px 8px rgba(255,255,255,0.5);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: inset -3px -3px 8px rgba(0,0,0,0.4),
+                        inset 3px 3px 8px rgba(255,255,255,0.6);
+            transition: all 0.3s ease;
         }
         .bubble:hover {
             transform: scale(1.1);
-            box-shadow: inset -4px -4px 10px rgba(0,0,0,0.4),
-                        inset 4px 4px 10px rgba(255,255,255,0.6);
+            box-shadow: inset -4px -4px 6px rgba(0,0,0,0.6),
+                        inset 4px 4px 6px rgba(255,255,255,0.8);
         }
         .fallback-styles {
             display: flex;
@@ -54,19 +56,11 @@
                     setHighScore(score);
                     localStorage.setItem('bubblebreaker-highscore', score.toString());
                 }
-            }, [score]);
-
-            React.useEffect(() => {
-                if (!areMovesLeft(grid)) {
-                    setMessage('Geen zetten meer mogelijk! Start een nieuw spel.');
-                } else {
-                    setMessage('');
-                }
-            }, [grid]);
+            }, [score, highScore]);
 
             const initializeGrid = () => {
-                const newGrid = Array.from({ length: GRID_SIZE }, () =>
-                    Array.from({ length: GRID_SIZE }, () => ({
+                const newGrid = Array(GRID_SIZE).fill().map(() =>
+                    Array(GRID_SIZE).fill().map(() => ({
                         color: COLORS[Math.floor(Math.random() * COLORS.length)],
                         id: Math.random().toString(36).substr(2, 9)
                     }))
@@ -98,11 +92,11 @@
                 return connected;
             };
 
-            const areMovesLeft = (currentGrid) => {
+            const areMovesLeft = () => {
                 for (let row = 0; row < GRID_SIZE; row++) {
                     for (let col = 0; col < GRID_SIZE; col++) {
-                        if (currentGrid[row][col]) {
-                            const color = currentGrid[row][col].color;
+                        if (grid[row][col]) {
+                            const color = grid[row][col].color;
                             const connected = findConnectedBubbles(row, col, color);
                             if (connected.length >= 2) {
                                 return true;
@@ -120,7 +114,7 @@
                 const connected = findConnectedBubbles(row, col, color);
 
                 if (connected.length >= 2) {
-                    const newGrid = grid.map(row => [...row]); // Deep clone grid
+                    const newGrid = JSON.parse(JSON.stringify(grid));
                     connected.forEach(([r, c]) => {
                         newGrid[r][c] = null;
                     });
@@ -139,7 +133,30 @@
                         }
                     }
 
+                    // Verwijder lege kolommen
+                    const nonEmptyColumns = [];
+                    for (let col = 0; col < GRID_SIZE; col++) {
+                        const column = newGrid.map(row => row[col]);
+                        if (column.some(cell => cell !== null)) {
+                            nonEmptyColumns.push(column);
+                        }
+                    }
+
+                    while (nonEmptyColumns.length < GRID_SIZE) {
+                        nonEmptyColumns.push(Array(GRID_SIZE).fill(null));
+                    }
+
+                    for (let row = 0; row < GRID_SIZE; row++) {
+                        for (let col = 0; col < GRID_SIZE; col++) {
+                            newGrid[row][col] = nonEmptyColumns[col][row];
+                        }
+                    }
+
                     setGrid(newGrid);
+
+                    if (!areMovesLeft()) {
+                        setMessage('Geen zetten meer mogelijk! Start een nieuw spel.');
+                    }
                 }
             };
 
