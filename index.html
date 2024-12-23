@@ -15,7 +15,151 @@
     <script type="text/babel">
         // Hier komt de React component code van het vorige artifact
         // Plak hier de volledige code van de BubbleBreaker component
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+const COLORS = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500'];
+const GRID_SIZE = 10;
+
+const BubbleBreaker = () => {
+  const [grid, setGrid] = useState([]);
+  const [score, setScore] = useState(0);
+  const [selectedBubbles, setSelectedBubbles] = useState([]);
+
+  // Initialize grid
+  useEffect(() => {
+    initializeGrid();
+  }, []);
+
+  const initializeGrid = () => {
+    const newGrid = Array(GRID_SIZE).fill().map(() =>
+      Array(GRID_SIZE).fill().map(() => ({
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        id: Math.random().toString(36).substr(2, 9)
+      }))
+    );
+    setGrid(newGrid);
+    setScore(0);
+  };
+
+  // Check if two bubbles are adjacent
+  const isAdjacent = (pos1, pos2) => {
+    const [row1, col1] = pos1;
+    const [row2, col2] = pos2;
+    return (
+      (Math.abs(row1 - row2) === 1 && col1 === col2) ||
+      (Math.abs(col1 - col2) === 1 && row1 === row2)
+    );
+  };
+
+  // Find connected bubbles of the same color
+  const findConnectedBubbles = (row, col, color, visited = new Set()) => {
+    const key = `${row},${col}`;
+    if (
+      row < 0 || row >= GRID_SIZE ||
+      col < 0 || col >= GRID_SIZE ||
+      visited.has(key) ||
+      grid[row][col].color !== color
+    ) {
+      return [];
+    }
+
+    visited.add(key);
+    const connected = [[row, col]];
+
+    // Check all adjacent positions
+    [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dr, dc]) => {
+      const newRow = row + dr;
+      const newCol = col + dc;
+      connected.push(...findConnectedBubbles(newRow, newCol, color, visited));
+    });
+
+    return connected;
+  };
+
+  // Handle bubble click
+  const handleBubbleClick = (row, col) => {
+    const color = grid[row][col].color;
+    const connected = findConnectedBubbles(row, col, color);
+    
+    if (connected.length >= 2) {
+      // Remove bubbles
+      const newGrid = [...grid];
+      connected.forEach(([r, c]) => {
+        newGrid[r][c] = null;
+      });
+
+      // Calculate score
+      const points = connected.length * (connected.length - 1);
+      setScore(prevScore => prevScore + points);
+
+      // Drop remaining bubbles
+      for (let col = 0; col < GRID_SIZE; col++) {
+        const column = newGrid.map(row => row[col]).filter(cell => cell !== null);
+        while (column.length < GRID_SIZE) {
+          column.unshift(null);
+        }
+        for (let row = 0; row < GRID_SIZE; row++) {
+          newGrid[row][col] = column[row];
+        }
+      }
+
+      // Shift columns left if empty
+      let firstEmptyCol = 0;
+      while (firstEmptyCol < GRID_SIZE) {
+        if (newGrid.every(row => row[firstEmptyCol] === null)) {
+          // Shift all columns to the right of firstEmptyCol one position left
+          for (let col = firstEmptyCol; col < GRID_SIZE - 1; col++) {
+            for (let row = 0; row < GRID_SIZE; row++) {
+              newGrid[row][col] = newGrid[row][col + 1];
+            }
+          }
+          // Fill the rightmost column with nulls
+          for (let row = 0; row < GRID_SIZE; row++) {
+            newGrid[row][GRID_SIZE - 1] = null;
+          }
+        } else {
+          firstEmptyCol++;
+        }
+      }
+
+      setGrid(newGrid);
+    }
+  };
+
+  return (
+    <Card className="w-full max-w-xl mx-auto">
+      <CardHeader>
+        <CardTitle className="text-center">BubbleBreaker</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-lg mb-4">Score: {score}</div>
+        <div className="grid grid-cols-10 gap-1 mb-4">
+          {grid.map((row, rowIndex) =>
+            row.map((bubble, colIndex) => (
+              <button
+                key={`${rowIndex}-${colIndex}`}
+                className={`w-8 h-8 rounded-full ${bubble ? bubble.color : 'bg-gray-200'} 
+                  transition-all duration-200 hover:opacity-80`}
+                onClick={() => bubble && handleBubbleClick(rowIndex, colIndex)}
+                disabled={!bubble}
+              />
+            ))
+          )}
+        </div>
+        <Button 
+          onClick={initializeGrid}
+          className="w-full"
+        >
+          New Game
+        </Button>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default BubbleBreaker;
         // Render de app
         ReactDOM.render(<BubbleBreaker />, document.getElementById('root'));
     </script>
