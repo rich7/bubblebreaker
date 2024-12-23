@@ -4,12 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BubbleBreaker</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+    <!-- React -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Backup styles voor het geval Tailwind niet laadt */
+        .fallback-styles {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f3f4f6;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+<body class="fallback-styles">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -41,6 +54,7 @@
                     row < 0 || row >= GRID_SIZE ||
                     col < 0 || col >= GRID_SIZE ||
                     visited.has(key) ||
+                    !grid[row][col] ||
                     grid[row][col].color !== color
                 ) {
                     return [];
@@ -59,11 +73,13 @@
             };
 
             const handleBubbleClick = (row, col) => {
+                if (!grid[row][col]) return;
+                
                 const color = grid[row][col].color;
                 const connected = findConnectedBubbles(row, col, color);
                 
                 if (connected.length >= 2) {
-                    const newGrid = [...grid];
+                    const newGrid = JSON.parse(JSON.stringify(grid));
                     connected.forEach(([r, c]) => {
                         newGrid[r][c] = null;
                     });
@@ -85,7 +101,7 @@
                     // Shift columns left
                     let firstEmptyCol = 0;
                     while (firstEmptyCol < GRID_SIZE) {
-                        if (newGrid.every(row => row[firstEmptyCol] === null)) {
+                        if (newGrid.every(row => !row[firstEmptyCol])) {
                             for (let col = firstEmptyCol; col < GRID_SIZE - 1; col++) {
                                 for (let row = 0; row < GRID_SIZE; row++) {
                                     newGrid[row][col] = newGrid[row][col + 1];
@@ -104,16 +120,16 @@
             };
 
             return (
-                <div className="bg-white p-6 rounded-lg shadow-lg">
+                <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg mx-auto">
                     <h1 className="text-2xl font-bold text-center mb-4">BubbleBreaker</h1>
-                    <div className="text-lg mb-4">Score: {score}</div>
-                    <div className="grid grid-cols-10 gap-1 mb-4">
+                    <div className="text-lg mb-4 text-center">Score: {score}</div>
+                    <div className="grid grid-cols-10 gap-1 mb-4 mx-auto" style={{maxWidth: '400px'}}>
                         {grid.map((row, rowIndex) =>
                             row.map((bubble, colIndex) => (
                                 <button
                                     key={`${rowIndex}-${colIndex}`}
-                                    className={`w-8 h-8 rounded-full ${bubble ? bubble.color : 'bg-gray-200'} 
-                                        transition-all duration-200 hover:opacity-80`}
+                                    className={`w-full pt-[100%] relative ${bubble ? bubble.color : 'bg-gray-200'} 
+                                        rounded-full transition-all duration-200 hover:opacity-80`}
                                     onClick={() => bubble && handleBubbleClick(rowIndex, colIndex)}
                                     disabled={!bubble}
                                 />
@@ -130,8 +146,8 @@
             );
         }
 
-        // Render de app
-        ReactDOM.render(<BubbleBreaker />, document.getElementById('root'));
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<BubbleBreaker />);
     </script>
 </body>
 </html>
