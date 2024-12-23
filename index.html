@@ -34,7 +34,7 @@
 
     <script type="text/babel">
         const COLORS = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500'];
-        const GRID_SIZE = 8; // Verkleind naar 8x8 voor grotere bubbels
+        const GRID_SIZE = 8; // Grid is 8x8
 
         function BubbleBreaker() {
             const [grid, setGrid] = React.useState([]);
@@ -82,9 +82,7 @@
                 const connected = [[row, col]];
 
                 [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dr, dc]) => {
-                    const newRow = row + dr;
-                    const newCol = col + dc;
-                    connected.push(...findConnectedBubbles(newRow, newCol, color, visited));
+                    connected.push(...findConnectedBubbles(row + dr, col + dc, color, visited));
                 });
 
                 return connected;
@@ -92,10 +90,10 @@
 
             const handleBubbleClick = (row, col) => {
                 if (!grid[row][col]) return;
-                
+
                 const color = grid[row][col].color;
                 const connected = findConnectedBubbles(row, col, color);
-                
+
                 if (connected.length >= 2) {
                     const newGrid = JSON.parse(JSON.stringify(grid));
                     connected.forEach(([r, c]) => {
@@ -105,7 +103,7 @@
                     const points = connected.length * (connected.length - 1);
                     setScore(prevScore => prevScore + points);
 
-                    // Drop bubbles
+                    // Laat bubbels vallen
                     for (let col = 0; col < GRID_SIZE; col++) {
                         const column = newGrid.map(row => row[col]).filter(cell => cell !== null);
                         while (column.length < GRID_SIZE) {
@@ -116,20 +114,22 @@
                         }
                     }
 
-                    // Shift columns left
-                    let firstEmptyCol = 0;
-                    while (firstEmptyCol < GRID_SIZE) {
-                        if (newGrid.every(row => !row[firstEmptyCol])) {
-                            for (let col = firstEmptyCol; col < GRID_SIZE - 1; col++) {
-                                for (let row = 0; row < GRID_SIZE; row++) {
-                                    newGrid[row][col] = newGrid[row][col + 1];
-                                }
-                            }
-                            for (let row = 0; row < GRID_SIZE; row++) {
-                                newGrid[row][GRID_SIZE - 1] = null;
-                            }
-                        } else {
-                            firstEmptyCol++;
+                    // Verschuif lege kolommen naar links
+                    const nonEmptyColumns = [];
+                    for (let col = 0; col < GRID_SIZE; col++) {
+                        const column = newGrid.map(row => row[col]);
+                        if (column.some(cell => cell !== null)) {
+                            nonEmptyColumns.push(column);
+                        }
+                    }
+
+                    while (nonEmptyColumns.length < GRID_SIZE) {
+                        nonEmptyColumns.push(Array(GRID_SIZE).fill(null));
+                    }
+
+                    for (let row = 0; row < GRID_SIZE; row++) {
+                        for (let col = 0; col < GRID_SIZE; col++) {
+                            newGrid[row][col] = nonEmptyColumns[col][row];
                         }
                     }
 
