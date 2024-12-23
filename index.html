@@ -1,3 +1,37 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BubbleBreaker</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .bubble {
+            box-shadow: inset -3px -3px 8px rgba(0,0,0,0.3),
+                        inset 3px 3px 8px rgba(255,255,255,0.5);
+            transition: all 0.3s ease;
+        }
+        .bubble:hover {
+            transform: scale(1.1);
+            box-shadow: inset -4px -4px 10px rgba(0,0,0,0.4),
+                        inset 4px 4px 10px rgba(255,255,255,0.6);
+        }
+        .fallback-styles {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="fallback-styles">
+    <div id="root"></div>
+
 <script type="text/babel">
 const COLORS = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500'];
 const GRID_SIZE = 8;
@@ -165,3 +199,8 @@ function BubbleBreaker() {
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<BubbleBreaker />);
 </script>
+
+
+
+</body>
+</html>
