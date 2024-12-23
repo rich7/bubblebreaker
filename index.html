@@ -4,14 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BubbleBreaker</title>
-    <!-- React -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
-    <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Backup styles voor het geval Tailwind niet laadt */
+        .bubble {
+            box-shadow: inset -3px -3px 8px rgba(0,0,0,0.3),
+                        inset 3px 3px 8px rgba(255,255,255,0.5);
+            transition: all 0.2s ease;
+        }
+        .bubble:hover {
+            transform: scale(1.1);
+            box-shadow: inset -4px -4px 10px rgba(0,0,0,0.4),
+                        inset 4px 4px 10px rgba(255,255,255,0.6);
+        }
         .fallback-styles {
             display: flex;
             justify-content: center;
@@ -27,15 +34,26 @@
 
     <script type="text/babel">
         const COLORS = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500'];
-        const GRID_SIZE = 10;
+        const GRID_SIZE = 8; // Verkleind naar 8x8 voor grotere bubbels
 
         function BubbleBreaker() {
             const [grid, setGrid] = React.useState([]);
             const [score, setScore] = React.useState(0);
+            const [highScore, setHighScore] = React.useState(() => {
+                const saved = localStorage.getItem('bubblebreaker-highscore');
+                return saved ? parseInt(saved) : 0;
+            });
 
             React.useEffect(() => {
                 initializeGrid();
             }, []);
+
+            React.useEffect(() => {
+                if (score > highScore) {
+                    setHighScore(score);
+                    localStorage.setItem('bubblebreaker-highscore', score.toString());
+                }
+            }, [score, highScore]);
 
             const initializeGrid = () => {
                 const newGrid = Array(GRID_SIZE).fill().map(() =>
@@ -120,16 +138,19 @@
             };
 
             return (
-                <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg mx-auto">
-                    <h1 className="text-2xl font-bold text-center mb-4">BubbleBreaker</h1>
-                    <div className="text-lg mb-4 text-center">Score: {score}</div>
-                    <div className="grid grid-cols-10 gap-1 mb-4 mx-auto" style={{maxWidth: '400px'}}>
+                <div className="bg-white p-8 rounded-xl shadow-2xl max-w-2xl mx-auto">
+                    <h1 className="text-3xl font-bold text-center mb-6">BubbleBreaker</h1>
+                    <div className="flex justify-between items-center mb-6">
+                        <div className="text-xl">Score: <span className="font-bold">{score}</span></div>
+                        <div className="text-xl">Highscore: <span className="font-bold text-blue-600">{highScore}</span></div>
+                    </div>
+                    <div className="grid grid-cols-8 gap-2 mb-6 mx-auto" style={{maxWidth: '500px'}}>
                         {grid.map((row, rowIndex) =>
                             row.map((bubble, colIndex) => (
                                 <button
                                     key={`${rowIndex}-${colIndex}`}
-                                    className={`w-full pt-[100%] relative ${bubble ? bubble.color : 'bg-gray-200'} 
-                                        rounded-full transition-all duration-200 hover:opacity-80`}
+                                    className={`bubble w-full pt-[100%] relative ${bubble ? bubble.color : 'bg-gray-200'} 
+                                        rounded-full transition-all duration-200`}
                                     onClick={() => bubble && handleBubbleClick(rowIndex, colIndex)}
                                     disabled={!bubble}
                                 />
@@ -138,7 +159,8 @@
                     </div>
                     <button 
                         onClick={initializeGrid}
-                        className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors"
+                        className="w-full bg-blue-500 text-white py-3 px-6 rounded-lg text-xl font-bold
+                            hover:bg-blue-600 transition-colors shadow-lg hover:shadow-xl"
                     >
                         Nieuw Spel
                     </button>
