@@ -12,12 +12,27 @@
         .bubble {
             box-shadow: inset -3px -3px 8px rgba(0,0,0,0.3),
                         inset 3px 3px 8px rgba(255,255,255,0.5);
-            transition: all 0.2s ease;
+            transform-origin: center;
+            animation-fill-mode: forwards;
         }
         .bubble:hover {
             transform: scale(1.1);
             box-shadow: inset -4px -4px 10px rgba(0,0,0,0.4),
                         inset 4px 4px 10px rgba(255,255,255,0.6);
+        }
+        .bubble-fall {
+            animation: fallDown 0.3s ease-in-out;
+        }
+        .bubble-shift {
+            animation: shiftLeft 0.3s ease-in-out;
+        }
+        @keyframes fallDown {
+            from { transform: translateY(-100%); }
+            to { transform: translateY(0); }
+        }
+        @keyframes shiftLeft {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
         }
         .fallback-styles {
             display: flex;
@@ -34,7 +49,7 @@
 
     <script type="text/babel">
         const COLORS = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500'];
-        const GRID_SIZE = 8; // Verkleind naar 8x8 voor grotere bubbels
+        const GRID_SIZE = 8;
 
         function BubbleBreaker() {
             const [grid, setGrid] = React.useState([]);
@@ -43,6 +58,7 @@
                 const saved = localStorage.getItem('bubblebreaker-highscore');
                 return saved ? parseInt(saved) : 0;
             });
+            const [isProcessing, setIsProcessing] = React.useState(false);
 
             React.useEffect(() => {
                 initializeGrid();
@@ -59,11 +75,14 @@
                 const newGrid = Array(GRID_SIZE).fill().map(() =>
                     Array(GRID_SIZE).fill().map(() => ({
                         color: COLORS[Math.floor(Math.random() * COLORS.length)],
-                        id: Math.random().toString(36).substr(2, 9)
+                        id: Math.random().toString(36).substr(2, 9),
+                        isNew: false,
+                        isShifted: false
                     }))
                 );
                 setGrid(newGrid);
                 setScore(0);
+                setIsProcessing(false);
             };
 
             const findConnectedBubbles = (row, col, color, visited = new Set()) => {
@@ -90,51 +109,55 @@
                 return connected;
             };
 
-            const handleBubbleClick = (row, col) => {
-                if (!grid[row][col]) return;
+            const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+            const handleBubbleClick = async (row, col) => {
+                if (!grid[row][col] || isProcessing) return;
                 
+                setIsProcessing(true);
                 const color = grid[row][col].color;
                 const connected = findConnectedBubbles(row, col, color);
                 
                 if (connected.length >= 2) {
+                    // Remove bubbles
                     const newGrid = JSON.parse(JSON.stringify(grid));
                     connected.forEach(([r, c]) => {
                         newGrid[r][c] = null;
                     });
-
-                    const points = connected.length * (connected.length - 1);
-                    setScore(prevScore => prevScore + points);
+                    setGrid(newGrid);
+                    await sleep(300);
 
                     // Drop bubbles
                     for (let col = 0; col < GRID_SIZE; col++) {
                         const column = newGrid.map(row => row[col]).filter(cell => cell !== null);
                         while (column.length < GRID_SIZE) {
-                            column.unshift(null);
+                            column.unshift({
+                                color: COLORS[Math.floor(Math.random() * COLORS.length)],
+                                id: Math.random().toString(36).substr(2, 9),
+                                isNew: true
+                            });
                         }
                         for (let row = 0; row < GRID_SIZE; row++) {
                             newGrid[row][col] = column[row];
                         }
                     }
-
-                    // Shift columns left
-                    let firstEmptyCol = 0;
-                    while (firstEmptyCol < GRID_SIZE) {
-                        if (newGrid.every(row => !row[firstEmptyCol])) {
-                            for (let col = firstEmptyCol; col < GRID_SIZE - 1; col++) {
-                                for (let row = 0; row < GRID_SIZE; row++) {
-                                    newGrid[row][col] = newGrid[row][col + 1];
-                                }
-                            }
-                            for (let row = 0; row < GRID_SIZE; row++) {
-                                newGrid[row][GRID_SIZE - 1] = null;
-                            }
-                        } else {
-                            firstEmptyCol++;
-                        }
-                    }
-
                     setGrid(newGrid);
+                    await sleep(300);
+
+                    // Update score
+                    const points = connected.length * (connected.length - 1);
+                    setScore(prevScore => prevScore + points);
                 }
+                
+                setIsProcessing(false);
+            };
+
+            const getBubbleClasses = (bubble) => {
+                if (!bubble) return 'bg-gray-200';
+                const classes = ['bubble', bubble.color];
+                if (bubble.isNew) classes.push('bubble-fall');
+                if (bubble.isShifted) classes.push('bubble-shift');
+                return classes.join(' ');
             };
 
             return (
@@ -148,11 +171,10 @@
                         {grid.map((row, rowIndex) =>
                             row.map((bubble, colIndex) => (
                                 <button
-                                    key={`${rowIndex}-${colIndex}`}
-                                    className={`bubble w-full pt-[100%] relative ${bubble ? bubble.color : 'bg-gray-200'} 
-                                        rounded-full transition-all duration-200`}
+                                    key={`${rowIndex}-${colIndex}-${bubble?.id || 'empty'}`}
+                                    className={`w-full pt-[100%] relative ${getBubbleClasses(bubble)}`}
                                     onClick={() => bubble && handleBubbleClick(rowIndex, colIndex)}
-                                    disabled={!bubble}
+                                    disabled={!bubble || isProcessing}
                                 />
                             ))
                         )}
@@ -161,6 +183,7 @@
                         onClick={initializeGrid}
                         className="w-full bg-blue-500 text-white py-3 px-6 rounded-lg text-xl font-bold
                             hover:bg-blue-600 transition-colors shadow-lg hover:shadow-xl"
+                        disabled={isProcessing}
                     >
                         Nieuw Spel
                     </button>
