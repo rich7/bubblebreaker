@@ -54,7 +54,7 @@
                     setHighScore(score);
                     localStorage.setItem('bubblebreaker-highscore', score.toString());
                 }
-            }, [score, highScore]);
+            }, [score]);
 
             React.useEffect(() => {
                 if (!areMovesLeft(grid)) {
@@ -65,8 +65,8 @@
             }, [grid]);
 
             const initializeGrid = () => {
-                const newGrid = Array(GRID_SIZE).fill().map(() =>
-                    Array(GRID_SIZE).fill().map(() => ({
+                const newGrid = Array.from({ length: GRID_SIZE }, () =>
+                    Array.from({ length: GRID_SIZE }, () => ({
                         color: COLORS[Math.floor(Math.random() * COLORS.length)],
                         id: Math.random().toString(36).substr(2, 9)
                     }))
@@ -98,11 +98,11 @@
                 return connected;
             };
 
-            const areMovesLeft = (grid) => {
+            const areMovesLeft = (currentGrid) => {
                 for (let row = 0; row < GRID_SIZE; row++) {
                     for (let col = 0; col < GRID_SIZE; col++) {
-                        if (grid[row][col]) {
-                            const color = grid[row][col].color;
+                        if (currentGrid[row][col]) {
+                            const color = currentGrid[row][col].color;
                             const connected = findConnectedBubbles(row, col, color);
                             if (connected.length >= 2) {
                                 return true;
@@ -120,7 +120,7 @@
                 const connected = findConnectedBubbles(row, col, color);
 
                 if (connected.length >= 2) {
-                    const newGrid = JSON.parse(JSON.stringify(grid));
+                    const newGrid = grid.map(row => [...row]); // Deep clone grid
                     connected.forEach(([r, c]) => {
                         newGrid[r][c] = null;
                     });
@@ -136,25 +136,6 @@
                         }
                         for (let row = 0; row < GRID_SIZE; row++) {
                             newGrid[row][col] = column[row];
-                        }
-                    }
-
-                    // Verwijder lege kolommen
-                    const nonEmptyColumns = [];
-                    for (let col = 0; col < GRID_SIZE; col++) {
-                        const column = newGrid.map(row => row[col]);
-                        if (column.some(cell => cell !== null)) {
-                            nonEmptyColumns.push(column);
-                        }
-                    }
-
-                    while (nonEmptyColumns.length < GRID_SIZE) {
-                        nonEmptyColumns.push(Array(GRID_SIZE).fill(null));
-                    }
-
-                    for (let row = 0; row < GRID_SIZE; row++) {
-                        for (let col = 0; col < GRID_SIZE; col++) {
-                            newGrid[row][col] = nonEmptyColumns[col][row];
                         }
                     }
 
